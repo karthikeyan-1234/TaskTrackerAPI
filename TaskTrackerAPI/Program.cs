@@ -18,6 +18,17 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+//Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 var config = builder.Configuration;
 
 builder.Services.AddDbContext<TaskDbContext>(opt => opt.UseSqlServer(config.GetConnectionString("taskDbConn")));
@@ -30,6 +41,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
