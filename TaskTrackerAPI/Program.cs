@@ -40,7 +40,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection(); Removed HttpsRedirection as this will be on private subnet and never exposed
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
