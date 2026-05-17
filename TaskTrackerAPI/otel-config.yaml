@@ -14,6 +14,9 @@ data:
 
     processors:
       batch:
+
+    # Connectors function exactly like processors but are natively supported across standard builds
+    connectors:
       spanmetrics:
         metrics_exporter: prometheus
         latency_histogram_buckets: [100ms, 250ms, 500ms, 1s, 5s]
@@ -29,20 +32,18 @@ data:
         verbosity: detailed
       loki:
         endpoint: "http://loki:3100/loki/api/v1/push"
-        default_labels_enabled:
-          exporter: true
-          job: true
-        hint_attributes:
+        # Modernized mapping block for matching your .NET Core application log indices
+        resource_to_label_attributes:
           - service.name
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [spanmetrics, batch]
-          exporters: [otlp, debug]
+          processors: [batch]
+          exporters: [otlp, debug, spanmetrics] # <-- Routes traces into the metrics connector
         metrics:
-          receivers: [otlp]
+          receivers: [otlp, spanmetrics]        # <-- Receives the calculated metrics from traces
           processors: [batch]
           exporters: [prometheus]
         logs:
@@ -66,7 +67,6 @@ spec:
     spec:
       containers:
       - name: otel-collector
-        # CHANGED: Pinned to a stable releases platform image which guarantees Loki and Spanmetrics inclusion
         image: otel/opentelemetry-collector-contrib:0.120.0
         args: ["--config=/etc/otelcol/config.yaml"]
         ports:
