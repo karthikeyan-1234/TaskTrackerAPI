@@ -1,5 +1,12 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 using TaskTrackerAPI.Models;
 using TaskTrackerAPI.Services;
@@ -34,6 +41,65 @@ var config = builder.Configuration;
 builder.Services.AddDbContext<TaskDbContext>(opt => opt.UseSqlServer(config.GetConnectionString("taskDbConn")));
 
 builder.Services.AddScoped<ITaskService, TaskService>();
+
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.AddOtlpExporter(opt =>
+    {
+        opt.Endpoint = new Uri("http://otel-collector:4317");
+        opt.Protocol = OtlpExportProtocol.Grpc;
+    });
+});
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+    .AddService("TaskTrackerAPI")
+    .AddAttributes(new Dictionary<string, object>
+    {
+        ["deployment.environment"] = builder.Environment.EnvironmentName,
+        ["service.version"] = "1.0.0"
+    })
+    )
+
+
+    .WithTracing(tracing => tracing
+        .AddSource("TaskTrackerAPI")
+        .AddAspNetCoreInstrumentation()
+        .AddSqlClientInstrumentation(options =>
+        {
+            options.EnrichWithSqlCommand = (activity, command) =>
+            {
+                if (command is SqlCommand cmd)
+                {
+                    // Capture actual SQL queries (equivalent to SetDbStatementForText = true)
+                    activity.SetTag("db.statement", cmd.CommandText);
+                    activity.SetTag("db.commandTimeOut", cmd.CommandTimeout);
+                }
+            };
+            options.RecordException = true;
+        })
+        .AddOtlpExporter(opt =>
+        {
+            opt.Endpoint = new Uri("http://otel-collector:4317");
+            opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+        }))
+
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddHttpClientInstrumentation()
+        .SetExemplarFilter(ExemplarFilterType.TraceBased) // This is the key line
+        .AddOtlpExporter(opt =>
+        {
+            opt.Endpoint = new Uri("http://otel-collector:4317");
+            opt.Protocol = OtlpExportProtocol.Grpc;
+        }));
+
+
+;
 
 var app = builder.Build();
 
