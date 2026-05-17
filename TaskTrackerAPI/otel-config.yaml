@@ -14,6 +14,7 @@ data:
 
     processors:
       batch:
+      # Generates RED metrics (Rate, Errors, Duration) from your incoming API traces
       spanmetrics:
         metrics_exporter: prometheus
         latency_histogram_buckets: [100ms, 250ms, 500ms, 1s, 5s]
@@ -27,23 +28,26 @@ data:
           insecure: true
       debug:
         verbosity: detailed
-      loki:                                          # <-- NEW exporter
+      loki:
         endpoint: "http://loki:3100/loki/api/v1/push"
-        labels:
-          resource:
-            service.name: "service_name"              # uses OTEL service name as a label
+        # Dynamically extracts the service name from the .NET runtime resource attributes
+        default_labels_enabled:
+          exporter: true
+          job: true
+        hint_attributes:
+          - service.name
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [batch]
+          processors: [spanmetrics, batch] # <-- Added spanmetrics here to capture trace durations
           exporters: [otlp, debug]
         metrics:
           receivers: [otlp]
           processors: [batch]
           exporters: [prometheus]
-        logs:                                        # <-- NEW pipeline
+        logs:
           receivers: [otlp]
           processors: [batch]
           exporters: [debug, loki]
@@ -65,6 +69,10 @@ spec:
       containers:
       - name: otel-collector
         image: otel/opentelemetry-collector-contrib:latest
+        ports:
+        - containerPort: 4317
+        - containerPort: 4318
+        - containerPort: 8889
         volumeMounts:
         - name: otel-collector-config-vol
           mountPath: /etc/otelcol-contrib/config.yaml
@@ -85,6 +93,9 @@ spec:
   - name: otlp-grpc
     port: 4317
     targetPort: 4317
-  - name: prometheus-export               # expose the Prometheus metrics endpoint if needed
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+  - name: prometheus-export
     port: 8889
     targetPort: 8889
