@@ -66,8 +66,8 @@ spec:
     spec:
       containers:
       - name: otel-collector
-        image: otel/opentelemetry-collector-contrib:latest
-        # Overriding the args forces the collector to read exactly where we mount our config map
+        # CHANGED: Pinned to a stable releases platform image which guarantees Loki and Spanmetrics inclusion
+        image: otel/opentelemetry-collector-contrib:0.120.0
         args: ["--config=/etc/otelcol/config.yaml"]
         ports:
         - containerPort: 4317
