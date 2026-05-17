@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-tracker-api
+  labels:
+    app: task-tracker-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: task-tracker-api
+  template:
+    metadata:
+      labels:
+        app: task-tracker-api
+    spec:
+      containers:
+      - name: api
+        image: task-tracker:v1
+        imagePullPolicy: Never # Forces k8s to use your local docker image build
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-tracker-api-service
+spec:
+  type: NodePort # This exposes it to your local network/Angular app
+  selector:
+    app: task-tracker-api
+  ports:
+    - protocol: TCP
+      port: 8080       # Port inside the cluster
+      targetPort: 8080 # Port the container listens on
+      nodePort: 30080  # Port accessible from your host/Angular (192.168.1.16:30080)
