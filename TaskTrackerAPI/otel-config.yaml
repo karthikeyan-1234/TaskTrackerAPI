@@ -14,7 +14,6 @@ data:
 
     processors:
       batch:
-      # Generates RED metrics (Rate, Errors, Duration) from your incoming API traces
       spanmetrics:
         metrics_exporter: prometheus
         latency_histogram_buckets: [100ms, 250ms, 500ms, 1s, 5s]
@@ -30,7 +29,6 @@ data:
         verbosity: detailed
       loki:
         endpoint: "http://loki:3100/loki/api/v1/push"
-        # Dynamically extracts the service name from the .NET runtime resource attributes
         default_labels_enabled:
           exporter: true
           job: true
@@ -41,7 +39,7 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [spanmetrics, batch] # <-- Added spanmetrics here to capture trace durations
+          processors: [spanmetrics, batch]
           exporters: [otlp, debug]
         metrics:
           receivers: [otlp]
@@ -69,13 +67,15 @@ spec:
       containers:
       - name: otel-collector
         image: otel/opentelemetry-collector-contrib:latest
+        # Overriding the args forces the collector to read exactly where we mount our config map
+        args: ["--config=/etc/otelcol/config.yaml"]
         ports:
         - containerPort: 4317
         - containerPort: 4318
         - containerPort: 8889
         volumeMounts:
         - name: otel-collector-config-vol
-          mountPath: /etc/otelcol-contrib/config.yaml
+          mountPath: /etc/otelcol/config.yaml
           subPath: otel-collector-config.yaml
       volumes:
       - name: otel-collector-config-vol
