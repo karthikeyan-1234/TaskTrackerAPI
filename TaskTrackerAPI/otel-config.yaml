@@ -16,20 +16,17 @@ data:
     processors:
       batch:
 
-    # ==========================================================
-    # FIXED: Precise configuration for spanmetrics connector
-    # ==========================================================
     connectors:
       spanmetrics:
         histogram:
-          unit: "ms" # Explicitly sets the metric suffix to match standards
+          unit: "ms"
           explicit:
-            buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 5s]
+            # FIX 1: Plain float milliseconds, NOT Go duration strings (5ms, 1s are invalid here)
+            buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 5000]
         dimensions:
           - name: http.request.method
           - name: http.response.status_code
           - name: http.route
-        # Ensures resource tags (like service.name) are carried over into Prometheus
         resource_metrics_key_attributes:
           - service.name
           - deployment.environment
@@ -37,7 +34,10 @@ data:
     exporters:
       prometheus:
         endpoint: "0.0.0.0:8889"
-        namespace: "spanmetrics"
+        # FIX 2: Removed `namespace: "spanmetrics"` — it caused double-prefix:
+        #         spanmetrics_spanmetrics_duration_ms_bucket (invisible in Prometheus)
+        # FIX 3: enable_open_metrics is REQUIRED for exemplars to be scraped by Prometheus
+        enable_open_metrics: true
       otlp:
         endpoint: "jaeger:4317"
         tls:
@@ -52,9 +52,9 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp, debug, spanmetrics] # Traces are exported into the connector
+          exporters: [otlp, debug, spanmetrics]
         metrics:
-          receivers: [otlp, spanmetrics]        # Metrics are read out of the connector
+          receivers: [otlp, spanmetrics]
           processors: [batch]
           exporters: [prometheus]
         logs:
