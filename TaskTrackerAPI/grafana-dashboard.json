@@ -1,64 +1,173 @@
 {
-  "title": "Task Tracker API — Core Performance Dashboard",
+  "title": "Task Tracker API \u2014 Core Performance Dashboard",
   "uid": "task-tracker-api-otel-final",
   "timezone": "browser",
   "schemaVersion": 38,
   "version": 1,
   "refresh": "5s",
-  "time": { "from": "now-30m", "to": "now" },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
   "templating": {
     "list": []
   },
   "panels": [
     {
+      "id": 200,
+      "type": "timeseries",
+      "title": "Throughput with Trace Exemplars (\u25c6 click to open Jaeger)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(traces_span_metrics_calls_total{job=\"otel-collector\"}[1m]))",
+          "legendFormat": "req/s",
+          "refId": "A",
+          "exemplar": true
+        }
+      ],
+      "options": {
+        "exemplars": {
+          "color": "rgba(0, 211, 255, 1)",
+          "enable": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "cyan"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15
+          }
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 9
+      }
+    },
+    {
+      "id": 201,
+      "type": "timeseries",
+      "title": "P95 Latency from Spanmetrics (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_milliseconds_bucket{job=\"otel-collector\"}[2m])) by (le))",
+          "legendFormat": "p95 ms",
+          "refId": "A",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 9
+      }
+    },
+    {
       "id": 100,
       "type": "text",
       "title": "",
-      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
       "options": {
         "mode": "markdown",
-        "content": "## 📊 Request Volume & Throughput"
+        "content": "## \ud83d\udcca Request Volume & Throughput"
       }
     },
     {
       "id": 1,
       "type": "timeseries",
       "title": "Total Request Rate (req/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\"}[1m]))",
           "legendFormat": "Total Throughput",
-          "refId": "A"
+          "refId": "A",
+          "exemplar": true
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "color": { "mode": "fixed", "fixedColor": "blue" },
-          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15
+          }
         }
       },
-      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 8 }
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 8
+      }
     },
     {
       "id": 101,
       "type": "text",
       "title": "",
-      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 1
+      },
       "options": {
         "mode": "markdown",
-        "content": "## ⏱️ Latency — P95 & P90 Percentiles"
+        "content": "## \u23f1\ufe0f Latency \u2014 P95 & P90 Percentiles"
       }
     },
     {
       "id": 3,
       "type": "timeseries",
       "title": "P95 Latency (Seconds)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[2m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"otel-collector\"}[2m])) by (le))",
           "legendFormat": "p95 latency",
           "refId": "A"
         }
@@ -66,20 +175,34 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "color": { "mode": "fixed", "fixedColor": "red" },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       },
-      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 4,
       "type": "timeseries",
       "title": "P90 Latency (Seconds)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[2m])) by (le))",
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{job=\"otel-collector\"}[2m])) by (le))",
           "legendFormat": "p90 latency",
           "refId": "A"
         }
@@ -87,35 +210,54 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "color": { "mode": "fixed", "fixedColor": "orange" },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       },
-      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 102,
       "type": "text",
       "title": "",
-      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 1
+      },
       "options": {
         "mode": "markdown",
-        "content": "## 🔴 HTTP Error Rates (4xx & 5xx)"
+        "content": "## \ud83d\udd34 HTTP Error Rates (4xx & 5xx)"
       }
     },
     {
       "id": 5,
       "type": "timeseries",
       "title": "HTTP Error Volume (req/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"5..\"}[1m]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\", http_response_status_code=~\"5..\"}[1m]))",
           "legendFormat": "5xx Server Errors",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"4..\"}[1m]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\", http_response_status_code=~\"4..\"}[1m]))",
           "legendFormat": "4xx Client Errors",
           "refId": "B"
         }
@@ -123,34 +265,67 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15
+          }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "5xx Server Errors" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "dark-red" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "5xx Server Errors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-red"
+                }
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "4xx Client Errors" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "semi-transparent-yellow" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "4xx Client Errors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-transparent-yellow"
+                }
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "x": 0, "y": 19, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 6,
       "type": "timeseries",
       "title": "HTTP Error Percentages (%)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"5..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\", http_response_status_code=~\"5..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\"}[1m]))",
           "legendFormat": "5xx error ratio",
           "refId": "A"
         },
         {
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"4..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\", http_response_status_code=~\"4..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\"}[1m]))",
           "legendFormat": "4xx error ratio",
           "refId": "B"
         }
@@ -163,34 +338,59 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
             ]
           },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       },
-      "gridPos": { "x": 12, "y": 19, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 12,
+        "y": 37,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 104,
       "type": "text",
       "title": "",
-      "gridPos": { "x": 0, "y": 27, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 24,
+        "h": 1
+      },
       "options": {
         "mode": "markdown",
-        "content": "## 🧠 .NET Core Memory & GC Metrics"
+        "content": "## \ud83e\udde0 .NET Core Memory & GC Metrics"
       }
     },
     {
       "id": 9,
       "type": "timeseries",
       "title": "GC Heap Allocation Rate (bytes/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(rate(dotnet_gc_alloc_allocated_bytes_total{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
+          "expr": "sum(rate(dotnet_gc_heap_allocated_bytes_total{job=\"otel-collector\"}[1m]))",
           "legendFormat": "Allocation Speed",
           "refId": "A"
         }
@@ -198,19 +398,30 @@
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
         }
       },
-      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 10,
       "type": "timeseries",
       "title": "Live GC Heap Size (Bytes)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(dotnet_gc_heap_size_bytes{exported_job=~\"TaskTrackerAPI|task-tracker-api\"})",
+          "expr": "sum(dotnet_gc_last_collection_heap_size_bytes{job=\"otel-collector\"})",
           "legendFormat": "Total Heap Footprint",
           "refId": "A"
         }
@@ -218,29 +429,45 @@
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
         }
       },
-      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 12,
+        "y": 46,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 105,
       "type": "text",
       "title": "",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 24,
+        "h": 1
+      },
       "options": {
         "mode": "markdown",
-        "content": "## 🪣 Pod Instance Breakdown"
+        "content": "## \ud83e\udea3 Pod Instance Breakdown"
       }
     },
     {
       "id": 11,
       "type": "timeseries",
       "title": "Load Distribution per Pod (req/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m])) by (exported_instance)",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"otel-collector\"}[1m])) by (instance)",
           "legendFormat": "{{exported_instance}}",
           "refId": "A"
         }
@@ -248,19 +475,30 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       },
-      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 12,
+        "h": 8
+      }
     },
     {
       "id": 12,
       "type": "timeseries",
       "title": "Active Heap Memory per Pod",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
-          "expr": "sum(dotnet_gc_heap_size_bytes{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}) by (exported_instance)",
+          "expr": "sum(dotnet_gc_last_collection_heap_size_bytes{job=\"otel-collector\"}) by (instance)",
           "legendFormat": "{{exported_instance}}",
           "refId": "A"
         }
@@ -268,10 +506,18 @@
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       },
-      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 }
+      "gridPos": {
+        "x": 12,
+        "y": 55,
+        "w": 12,
+        "h": 8
+      }
     }
   ]
 }
