@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-conf
+  namespace: default
 data:
   otel-collector-config.yaml: |
     receivers:
@@ -38,9 +39,9 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp, debug, spanmetrics] # <-- Connectors act as an exporter out of traces...
+          exporters: [otlp, debug, spanmetrics]
         metrics:
-          receivers: [otlp, spanmetrics]        # <-- ...and act as a receiver into metrics!
+          receivers: [otlp, spanmetrics]
           processors: [batch]
           exporters: [prometheus]
         logs:
