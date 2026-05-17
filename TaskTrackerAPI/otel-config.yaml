@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-conf
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+      spanmetrics:
+        metrics_exporter: prometheus
+        latency_histogram_buckets: [100ms, 250ms, 500ms, 1s, 5s]
+
+    exporters:
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+      otlp:
+        endpoint: "jaeger:4317"
+        tls:
+          insecure: true
+      debug:
+        verbosity: detailed
+      loki:                                          # <-- NEW exporter
+        endpoint: "http://loki:3100/loki/api/v1/push"
+        labels:
+          resource:
+            service.name: "service_name"              # uses OTEL service name as a label
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp, debug]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus]
+        logs:                                        # <-- NEW pipeline
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [debug, loki]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:latest
+        volumeMounts:
+        - name: otel-collector-config-vol
+          mountPath: /etc/otelcol-contrib/config.yaml
+          subPath: otel-collector-config.yaml
+      volumes:
+      - name: otel-collector-config-vol
+        configMap:
+          name: otel-collector-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+spec:
+  selector:
+    app: otel-collector
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+  - name: prometheus-export               # expose the Prometheus metrics endpoint if needed
+    port: 8889
+    targetPort: 8889
