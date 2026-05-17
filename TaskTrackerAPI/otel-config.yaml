@@ -17,23 +17,27 @@ data:
       batch:
 
     # ==========================================================
-    # FIXED: Added explicit mapping rules for spanmetrics
+    # FIXED: Precise configuration for spanmetrics connector
     # ==========================================================
     connectors:
       spanmetrics:
         histogram:
+          unit: "ms" # Explicitly sets the metric suffix to match standards
           explicit:
-            buckets: [100ms, 250ms, 500ms, 1s, 5s]
+            buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 5s]
         dimensions:
           - name: http.request.method
           - name: http.response.status_code
           - name: http.route
-          - name: service.name
+        # Ensures resource tags (like service.name) are carried over into Prometheus
+        resource_metrics_key_attributes:
+          - service.name
+          - deployment.environment
 
     exporters:
       prometheus:
         endpoint: "0.0.0.0:8889"
-        namespace: "spanmetrics" # Adds a prefix so they are clean to find
+        namespace: "spanmetrics"
       otlp:
         endpoint: "jaeger:4317"
         tls:
@@ -48,9 +52,9 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp, debug, spanmetrics]
+          exporters: [otlp, debug, spanmetrics] # Traces are exported into the connector
         metrics:
-          receivers: [otlp, spanmetrics]
+          receivers: [otlp, spanmetrics]        # Metrics are read out of the connector
           processors: [batch]
           exporters: [prometheus]
         logs:
