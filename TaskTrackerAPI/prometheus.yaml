@@ -11,12 +11,6 @@ data:
       - job_name: 'otel-collector'
         static_configs:
           - targets: ['otel-collector:8889']
-        # Automatically alters metric names to match what Jaeger's Monitor Tab expects
-        metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: '(calls_total|duration_milliseconds_bucket|duration_milliseconds_count|duration_milliseconds_sum)'
-            target_label: __name__
-            replacement: 'traces_span_metrics_$1'
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -38,6 +32,7 @@ spec:
         args:
           - "--config.file=/etc/prometheus/prometheus.yml"
           - "--storage.tsdb.retention.time=1d"
+          - "--enable-feature=exemplars-storage" # <-- CRITICAL: Enables OpenTelemetry Exemplar indexing
         ports:
         - containerPort: 9090
         volumeMounts:

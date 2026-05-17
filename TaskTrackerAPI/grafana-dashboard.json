@@ -3,7 +3,7 @@
   "uid": "task-tracker-api-otel",
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 3,
+  "version": 5,
   "refresh": "5s",
   "time": { "from": "now-30m", "to": "now" },
   "templating": {
@@ -11,27 +11,22 @@
   },
   "panels": [
     {
-      "id": 100,
-      "type": "text",
-      "title": "",
-      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
-      "options": {
-        "mode": "markdown",
-        "content": "## 📊 Request Volume & Throughput"
-      }
-    },
-    {
       "id": 1,
       "type": "timeseries",
-      "title": "Total Request Rate (req/s)",
+      "title": "Total Request Rate (req/s) with Trace Exemplars",
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{exported_job=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
           "legendFormat": "Total Throughput",
           "refId": "A"
         }
       ],
+      "options": {
+        "exemplars": {
+          "enable": true
+        }
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
@@ -39,239 +34,7 @@
           "custom": { "lineWidth": 2, "fillOpacity": 15 }
         }
       },
-      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 8 }
-    },
-    {
-      "id": 101,
-      "type": "text",
-      "title": "",
-      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 },
-      "options": {
-        "mode": "markdown",
-        "content": "## ⏱️ Latency — P95 & P90 Percentiles"
-      }
-    },
-    {
-      "id": 3,
-      "type": "timeseries",
-      "title": "P95 Latency (Seconds)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[2m])) by (le))",
-          "legendFormat": "p95 latency",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "fixed", "fixedColor": "red" },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
-        }
-      },
-      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 8 }
-    },
-    {
-      "id": 4,
-      "type": "timeseries",
-      "title": "P90 Latency (Seconds)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.90, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[2m])) by (le))",
-          "legendFormat": "p90 latency",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "fixed", "fixedColor": "orange" },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
-        }
-      },
-      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 }
-    },
-    {
-      "id": 102,
-      "type": "text",
-      "title": "",
-      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 1 },
-      "options": {
-        "mode": "markdown",
-        "content": "## 🔴 HTTP Error Rates (4xx & 5xx)"
-      }
-    },
-    {
-      "id": 5,
-      "type": "timeseries",
-      "title": "HTTP Error Volume (req/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\" ,http_response_status_code=~\"5..\"}[1m]))",
-          "legendFormat": "5xx Server Errors",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"4..\"}[1m]))",
-          "legendFormat": "4xx Client Errors",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": { "lineWidth": 2, "fillOpacity": 15 }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "5xx Server Errors" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "dark-red" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "4xx Client Errors" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "semi-transparent-yellow" } }]
-          }
-        ]
-      },
-      "gridPos": { "x": 0, "y": 19, "w": 12, "h": 8 }
-    },
-    {
-      "id": 6,
-      "type": "timeseries",
-      "title": "HTTP Error Percentages (%)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"5..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
-          "legendFormat": "5xx error ratio",
-          "refId": "A"
-        },
-        {
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\", http_response_status_code=~\"4..\"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
-          "legendFormat": "4xx error ratio",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
-          },
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
-        }
-      },
-      "gridPos": { "x": 12, "y": 19, "w": 12, "h": 8 }
-    },
-    {
-      "id": 104,
-      "type": "text",
-      "title": "",
-      "gridPos": { "x": 0, "y": 27, "w": 24, "h": 1 },
-      "options": {
-        "mode": "markdown",
-        "content": "## 🧠 .NET Core Memory & GC Metrics"
-      }
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "GC Heap Allocation Rate (bytes/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(dotnet_gc_alloc_allocated_bytes_total{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[1m]))",
-          "legendFormat": "Allocation Speed",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
-        }
-      },
-      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 }
-    },
-    {
-      "id": 10,
-      "type": "timeseries",
-      "title": "Live GC Heap Size (Bytes)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "sum(dotnet_gc_heap_size_bytes{service_name=~\"TaskTrackerAPI|task-tracker-api\"})",
-          "legendFormat": "Total Heap Footprint",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
-        }
-      },
-      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 }
-    },
-    {
-      "id": 105,
-      "type": "text",
-      "title": "",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
-      "options": {
-        "mode": "markdown",
-        "content": "## 🪣 Pod Instance Breakdown"
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Load Distribution per Pod (req/s)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"TaskTrackerAPI|task-tracker-api\"}[1m])) by (instance)",
-          "legendFormat": "{{instance}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
-        }
-      },
-      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 }
-    },
-    {
-      "id": 12,
-      "type": "timeseries",
-      "title": "Active Heap Memory per Pod",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "targets": [
-        {
-          "expr": "sum(dotnet_gc_heap_size_bytes{service_name=~\"TaskTrackerAPI|task-tracker-api\"}) by (instance)",
-          "legendFormat": "{{instance}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": { "lineWidth": 2, "fillOpacity": 8 }
-        }
-      },
-      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 }
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 10 }
     }
   ]
 }

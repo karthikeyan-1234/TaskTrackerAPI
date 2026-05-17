@@ -11,9 +11,19 @@ data:
         url: http://prometheus:9090
         access: proxy
         isDefault: true
+        jsonData:
+          exemplars:
+            - internal: true
+              # Maps your exemplar TraceId directly over into Jaeger UI actions
+              url: 'http://192.168.1.16:30006/trace/${__value.raw}' 
+              name: TraceID
       - name: Loki
         type: loki
         url: http://loki:3100
+        access: proxy
+      - name: Jaeger
+        type: jaeger
+        url: http://jaeger:16686
         access: proxy
 ---
 apiVersion: apps/v1
@@ -40,7 +50,7 @@ spec:
           mountPath: /etc/grafana/provisioning/datasources
         env:
         - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "admin"                         # change for production
+          value: "admin"
       volumes:
       - name: datasources
         configMap:

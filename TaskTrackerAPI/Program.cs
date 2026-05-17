@@ -14,7 +14,6 @@ using TaskTrackerAPI.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -25,7 +24,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-//Add CORS
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
@@ -37,16 +36,20 @@ builder.Services.AddCors(options =>
 });
 
 var config = builder.Configuration;
-
 builder.Services.AddDbContext<TaskDbContext>(opt => opt.UseSqlServer(config.GetConnectionString("taskDbConn")));
-
 builder.Services.AddScoped<ITaskService, TaskService>();
 
-
+// ==========================================
+// 1. OPEN TELEMETRY LOGGING CONFIGURATION
+// ==========================================
+builder.Logging.ClearProviders(); // Optional: Clears console if you want only OTLP logs
+builder.Logging.AddConsole();    // Optional: Keeps local container console streaming
 builder.Logging.AddOpenTelemetry(logging =>
 {
     logging.IncludeFormattedMessage = true;
     logging.IncludeScopes = true;
+    logging.ParseStateValues = true; // CRITICAL: Allows Loki to see structured attributes like TraceId/SpanId
+
     logging.AddOtlpExporter(opt =>
     {
         opt.Endpoint = new Uri("http://otel-collector:4317");
@@ -54,17 +57,18 @@ builder.Logging.AddOpenTelemetry(logging =>
     });
 });
 
+// ==========================================
+// 2. OPEN TELEMETRY TRACES & METRICS CONFIGURATION
+// ==========================================
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
-    .AddService("TaskTrackerAPI")
-    .AddAttributes(new Dictionary<string, object>
-    {
-        ["deployment.environment"] = builder.Environment.EnvironmentName,
-        ["service.version"] = "1.0.0"
-    })
+        .AddService("TaskTrackerAPI")
+        .AddAttributes(new Dictionary<string, object>
+        {
+            ["deployment.environment"] = builder.Environment.EnvironmentName,
+            ["service.version"] = "1.0.0"
+        })
     )
-
-
     .WithTracing(tracing => tracing
         .AddSource("TaskTrackerAPI")
         .AddAspNetCoreInstrumentation()
@@ -74,7 +78,6 @@ builder.Services.AddOpenTelemetry()
             {
                 if (command is SqlCommand cmd)
                 {
-                    // Capture actual SQL queries (equivalent to SetDbStatementForText = true)
                     activity.SetTag("db.statement", cmd.CommandText);
                     activity.SetTag("db.commandTimeOut", cmd.CommandTimeout);
                 }
@@ -84,30 +87,26 @@ builder.Services.AddOpenTelemetry()
         .AddOtlpExporter(opt =>
         {
             opt.Endpoint = new Uri("http://otel-collector:4317");
-            opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+            opt.Protocol = OtlpExportProtocol.Grpc;
         }))
-
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddRuntimeInstrumentation()
         .AddHttpClientInstrumentation()
-        .SetExemplarFilter(ExemplarFilterType.TraceBased) // This is the key line
+        .SetExemplarFilter(ExemplarFilterType.TraceBased) // Key line for Grafana Diamond Indicators
         .AddOtlpExporter(opt =>
         {
             opt.Endpoint = new Uri("http://otel-collector:4317");
             opt.Protocol = OtlpExportProtocol.Grpc;
         }));
 
-
-;
-
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-//app.UseHttpsRedirection(); Removed HttpsRedirection as this will be on private subnet and never exposed
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();
