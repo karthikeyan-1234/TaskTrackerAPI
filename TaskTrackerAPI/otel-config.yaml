@@ -16,15 +16,24 @@ data:
     processors:
       batch:
 
+    # ==========================================================
+    # FIXED: Added explicit mapping rules for spanmetrics
+    # ==========================================================
     connectors:
       spanmetrics:
         histogram:
           explicit:
             buckets: [100ms, 250ms, 500ms, 1s, 5s]
+        dimensions:
+          - name: http.request.method
+          - name: http.response.status_code
+          - name: http.route
+          - name: service.name
 
     exporters:
       prometheus:
         endpoint: "0.0.0.0:8889"
+        namespace: "spanmetrics" # Adds a prefix so they are clean to find
       otlp:
         endpoint: "jaeger:4317"
         tls:
