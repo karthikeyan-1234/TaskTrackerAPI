@@ -17,7 +17,6 @@ data:
 
     connectors:
       spanmetrics:
-        # Config block variables for 0.120.0 connector schema
         histogram:
           explicit:
             buckets: [100ms, 250ms, 500ms, 1s, 5s]
@@ -39,61 +38,12 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp, debug, spanmetrics]
+          exporters: [otlp, debug, spanmetrics] # <-- Connectors act as an exporter out of traces...
         metrics:
-          receivers: [otlp, spanmetrics]
+          receivers: [otlp, spanmetrics]        # <-- ...and act as a receiver into metrics!
           processors: [batch]
           exporters: [prometheus]
         logs:
           receivers: [otlp]
           processors: [batch]
           exporters: [debug, loki]
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: otel-collector
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: otel-collector
-  template:
-    metadata:
-      labels:
-        app: otel-collector
-    spec:
-      containers:
-      - name: otel-collector
-        image: otel/opentelemetry-collector-contrib:0.120.0
-        args: ["--config=/etc/otelcol/config.yaml"]
-        ports:
-        - containerPort: 4317
-        - containerPort: 4318
-        - containerPort: 8889
-        volumeMounts:
-        - name: otel-collector-config-vol
-          mountPath: /etc/otelcol/config.yaml
-          subPath: otel-collector-config.yaml
-      volumes:
-      - name: otel-collector-config-vol
-        configMap:
-          name: otel-collector-conf
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: otel-collector
-spec:
-  selector:
-    app: otel-collector
-  ports:
-  - name: otlp-grpc
-    port: 4317
-    targetPort: 4317
-  - name: otlp-http
-    port: 4318
-    targetPort: 4318
-  - name: prometheus-export
-    port: 8889
-    targetPort: 8889
