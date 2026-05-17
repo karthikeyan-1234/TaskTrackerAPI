@@ -18,10 +18,11 @@ data:
 
     connectors:
       spanmetrics:
+        exemplars:
+          enabled: true
         histogram:
           unit: "ms"
           explicit:
-            # FIX 1: Plain float milliseconds, NOT Go duration strings (5ms, 1s are invalid here)
             buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 5000]
         dimensions:
           - name: http.request.method
@@ -34,18 +35,15 @@ data:
     exporters:
       prometheus:
         endpoint: "0.0.0.0:8889"
-        # FIX 2: Removed `namespace: "spanmetrics"` — it caused double-prefix:
-        #         spanmetrics_spanmetrics_duration_ms_bucket (invisible in Prometheus)
-        # FIX 3: enable_open_metrics is REQUIRED for exemplars to be scraped by Prometheus
-        enable_open_metrics: true
+        enable_open_metrics: true # REQUIRED FOR EXEMPLARS
       otlp:
         endpoint: "jaeger:4317"
         tls:
           insecure: true
-      debug:
-        verbosity: detailed
       loki:
         endpoint: "http://loki:3100/loki/api/v1/push"
+      debug:
+        verbosity: detailed
 
     service:
       pipelines:
@@ -60,4 +58,4 @@ data:
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [debug, loki]
+          exporters: [loki, debug]
