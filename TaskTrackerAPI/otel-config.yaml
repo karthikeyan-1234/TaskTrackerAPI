@@ -15,11 +15,12 @@ data:
     processors:
       batch:
 
-    # Connectors function exactly like processors but are natively supported across standard builds
     connectors:
       spanmetrics:
-        metrics_exporter: prometheus
-        latency_histogram_buckets: [100ms, 250ms, 500ms, 1s, 5s]
+        # Config block variables for 0.120.0 connector schema
+        histogram:
+          explicit:
+            buckets: [100ms, 250ms, 500ms, 1s, 5s]
 
     exporters:
       prometheus:
@@ -32,18 +33,15 @@ data:
         verbosity: detailed
       loki:
         endpoint: "http://loki:3100/loki/api/v1/push"
-        # Modernized mapping block for matching your .NET Core application log indices
-        resource_to_label_attributes:
-          - service.name
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp, debug, spanmetrics] # <-- Routes traces into the metrics connector
+          exporters: [otlp, debug, spanmetrics]
         metrics:
-          receivers: [otlp, spanmetrics]        # <-- Receives the calculated metrics from traces
+          receivers: [otlp, spanmetrics]
           processors: [batch]
           exporters: [prometheus]
         logs:
