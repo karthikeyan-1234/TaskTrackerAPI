@@ -38,4 +38,4 @@ spec:
     - protocol: TCP
       port: 8090       # Port inside the cluster
       targetPort: 8090 # Port the container listens on
-      nodePort: 30090  # Port accessible from your host/Angular (192.168.1.16:30090)
+      nodePort: 30060  # Port accessible from your host/Angular (192.168.1.16:30060)
