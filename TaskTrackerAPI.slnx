@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="CommunicationAPI/CommunicationAPI.csproj" Id="03208ff1-8dfd-4449-bab3-ff84976fab6b" />
   <Project Path="TaskTrackerAPI/TaskTrackerAPI.csproj" />
 </Solution>
