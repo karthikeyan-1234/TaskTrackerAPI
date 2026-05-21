@@ -1,3 +1,5 @@
+using Confluent.Kafka;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -95,6 +97,19 @@ builder.Services.AddOpenTelemetry()
             opt.Endpoint = new Uri("http://otel-collector:4317");
             opt.Protocol = OtlpExportProtocol.Grpc;
         }));
+
+
+// Kafka Consumer
+builder.Services.AddSingleton<IConsumer<string, string>>(sp =>
+{
+    var config = new ConsumerConfig
+    {
+        BootstrapServers = builder.Configuration["Kafka:BootstrapServers"],
+        GroupId = "task-service-group",
+        AutoOffsetReset = AutoOffsetReset.Earliest
+    };
+    return new ConsumerBuilder<string, string>(config).Build();
+});
 
 var app = builder.Build();
 

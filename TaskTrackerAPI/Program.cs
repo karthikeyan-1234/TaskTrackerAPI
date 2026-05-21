@@ -1,3 +1,5 @@
+using Confluent.Kafka;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -99,6 +101,19 @@ builder.Services.AddOpenTelemetry()
             opt.Endpoint = new Uri("http://otel-collector:4317");
             opt.Protocol = OtlpExportProtocol.Grpc;
         }));
+
+
+// Kafka Producer
+builder.Services.AddSingleton<IProducer<string, string>>(sp =>
+{
+    var config = new ProducerConfig
+    {
+        BootstrapServers = builder.Configuration["Kafka:BootstrapServers"],
+        Acks = Acks.All,                     // wait for leader + replicas
+        MessageTimeoutMs = 5000
+    };
+    return new ProducerBuilder<string, string>(config).Build();
+});
 
 var app = builder.Build();
 

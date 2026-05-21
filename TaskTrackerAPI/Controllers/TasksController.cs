@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Confluent.Kafka;
+
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using TaskTrackerAPI.Services;
@@ -10,10 +12,12 @@ namespace TaskTrackerAPI.Controllers
     public class TasksController : ControllerBase
     {
         public ITaskService TaskService { get; set; }
+        public IProducer<string, string> KafkaProducer { get; set; }
 
-        public TasksController(ITaskService taskService)
+        public TasksController(ITaskService taskService, IProducer<string, string> kafkaProducer)
         {
             TaskService = taskService;
+            KafkaProducer = kafkaProducer;
         }
 
         [HttpGet("GetAllTasks")]
@@ -27,6 +31,13 @@ namespace TaskTrackerAPI.Controllers
         public async Task<ActionResult<Models.Task>> AddTask(DTOs.newTaskDTO task)
         {
             var addedTask = await TaskService.AddTask(task);
+
+            KafkaProducer.Produce("task-events", new Message<string, string>
+            {
+                Key = "TaskAdded",
+                Value = $"Task with ID {addedTask.id} added: {addedTask.title}"
+            });
+
             return Ok(addedTask);
         }
 
