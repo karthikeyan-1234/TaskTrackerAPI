@@ -5,12 +5,16 @@ metadata:
   labels:
     app: kafka
 spec:
-  type: NodePort  # Changed from ClusterIP to expose the broker data plane externally
+  type: NodePort
   ports:
   - port: 9092
     targetPort: 9092
-    nodePort: 30092 # Statically bound port for your local .NET API connectivity
-    name: cluster
+    nodePort: 30092
+    name: internal
+  - port: 9094
+    targetPort: 9094
+    nodePort: 30094 # The dedicated external broker port for your local API
+    name: external
   selector:
     app: kafka
 ---
@@ -36,26 +40,27 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 9092
+        - containerPort: 9094
         env:
-        # Native Apache KRaft Configuration Variables
         - name: KAFKA_NODE_ID
           value: "1"
         - name: KAFKA_PROCESS_ROLES
           value: "broker,controller"
         - name: KAFKA_CONTROLLER_LISTENER_NAMES
           value: "CONTROLLER"
+        # 1. Listen on both internal 9092 and external 9094 ports
         - name: KAFKA_LISTENERS
-          value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+          value: "INTERNAL://:9092,EXTERNAL://:9094,CONTROLLER://:9093"
+        # 2. Map the listener names to security protocols
         - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
-          value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+          value: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+        # 3. Tell Kafka how to reply to connection requests based on where they come from
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "INTERNAL://kafka-service:9092,EXTERNAL://192.168.1.16:30094"
         - name: KAFKA_CONTROLLER_QUORUM_VOTERS
           value: "1@localhost:9093"
-        # Configures how internal and external components route back to the broker
-        - name: KAFKA_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://kafka-service:9092"
         - name: CLUSTER_ID
           value: "MkU3OEVBNTcwNTg0NDM4Rk"
-        # Dynamic configuration flags for local developer cycles
         - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
           value: "true"
         - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
@@ -78,7 +83,7 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30050 # Mapped to your specific available UI port assignment
+    nodePort: 30050
     protocol: TCP
   selector:
     app: kafka-ui
@@ -106,9 +111,9 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        # Internal connection parameters linking the UI engine to the broker core
         - name: KAFKA_CLUSTERS_0_NAME
           value: "local-k3s-cluster"
+        # Kafka UI lives inside the cluster, so it uses the INTERNAL service channel
         - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
           value: "kafka-service:9092"
         - name: DYNAMIC_CONFIG_ENABLED
