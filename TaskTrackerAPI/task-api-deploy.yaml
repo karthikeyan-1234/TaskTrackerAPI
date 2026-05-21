@@ -15,9 +15,9 @@ spec:
         app: task-tracker-api
     spec:
       containers:
-      - name: api
-        image: task-tracker:v1
-        imagePullPolicy: Never # Forces k8s to use your local docker image build
+      - name: task-tracker-api
+        image: task-tracker-api:stable
+        imagePullPolicy: Never # Forces K3s to read the newly imported image from local containerd storage
         ports:
         - containerPort: 8080
         env:
@@ -25,17 +25,31 @@ spec:
           value: "Development"
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
+        # Database Connection String Setup
+        - name: ConnectionStrings__taskDbConn
+          value: "Server=192.168.1.16,31433;Database=TasksDB;User Id=sa;Password=YourStrong@Pass123;TrustServerCertificate=True;"
+        # CRITICAL KAFKA INNER ROUTING MAP
+        - name: Kafka__BootstrapServers
+          value: "kafka-service:9092"
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: task-tracker-api-service
+  labels:
+    app: task-tracker-api
 spec:
-  type: NodePort # This exposes it to your local network/Angular app
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080 # Exposes Swagger to your browser
+    protocol: TCP
   selector:
     app: task-tracker-api
-  ports:
-    - protocol: TCP
-      port: 8080       # Port inside the cluster
-      targetPort: 8080 # Port the container listens on
-      nodePort: 30080  # Port accessible from your host/Angular (192.168.1.16:30080)
