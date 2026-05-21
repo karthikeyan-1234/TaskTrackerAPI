@@ -32,12 +32,23 @@ namespace TaskTrackerAPI.Controllers
         {
             var addedTask = await TaskService.AddTask(task);
 
-            KafkaProducer.Produce("task-events", new Message<string, string>
+            try
             {
-                Key = "TaskAdded",
-                Value = $"Task with ID {addedTask.id} added: {addedTask.title}"
-            });
+                // 2. Await the actual cluster transmission confirmation
+                var deliveryResult = await KafkaProducer.ProduceAsync("task-events", new Message<string, string>
+                {
+                    Key = addedTask.id.ToString(), // Better practice to pass the entity ID as the partition key
+                    Value = $"Task with ID {addedTask.id} added: {addedTask.title}"
+                });
 
+                // Optional log line to verify port destination tracking via VS Code terminal console
+                Console.WriteLine($"[Kafka] Message successfully delivered to topic {deliveryResult.Topic} on partition {deliveryResult.Partition.Value}");
+            }
+            catch (ProduceException<string, string> ex)
+            {
+                // Captures connectivity snags, timeouts, or partition routing problems
+                Console.WriteLine($"[Kafka Error] Failed to write to broker: {ex.Error.Reason}");
+            }
             return Ok(addedTask);
         }
 
