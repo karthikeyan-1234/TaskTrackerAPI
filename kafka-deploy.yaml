@@ -31,42 +31,42 @@ spec:
     spec:
       containers:
       - name: kafka
-        image: bitnami/kafka:3.7-debian-12
-        imagePullPolicy: IfNotPresent
+        image: apache/kafka:3.7.0     # Uses the official Apache Docker Hub repository to bypass redirection issues
+        imagePullPolicy: Always       # Forces Kubernetes to automatically fetch it from the internet registry
         ports:
         - containerPort: 9092
         env:
-        # Enable KRaft mode (No Zookeeper needed)
+        # Enable KRaft mode (No Zookeeper required)
         - name: KAFKA_ENABLE_KRAFT
           value: "yes"
         - name: KAFKA_CFG_PROCESS_ROLES
           value: "broker,controller"
         - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
           value: "CONTROLLER"
-        # Define listeners for both cluster-internal clients and the controller
+        # Define listeners for cluster-internal application traffic and the controller quorum
         - name: KAFKA_CFG_LISTENERS
           value: "PLAINTEXT://:9092,CONTROLLER://:9093"
         - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
           value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-        # This tells Kafka how pods will address it inside the cluster network
+        # This tells Kafka how pods will address it over the internal CoreDNS network mapping
         - name: KAFKA_CFG_ADVERTISED_LISTENERS
           value: "PLAINTEXT://kafka-service:9092"
-        # KRaft cluster configuration requirements
+        # KRaft cluster topology tracking requirements
         - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
           value: "1@127.0.0.1:9093"
         - name: KAFKA_KRAFT_CLUSTER_ID
           value: "abcdefghijklmnopqrstuv"
         - name: KAFKA_CFG_NODE_ID
           value: "1"
-        # Allow automatic topic creation for simple local development
+        # Enable dynamic topic creation for simpler local developer cycles
         - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
           value: "true"
-        # Fast configuration adjustments for a low-resource dev environment
+        # Tailored partition and replication factor reductions for lower machine-resource consumption
         - name: KAFKA_CFG_NUM_PARTITIONS
           value: "1"
         - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
           value: "1"
-        - name: KAFKA_CFG_OFFSETS_TOPIC_REREPLICATION_FACTOR
+        - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
           value: "1"
         resources:
           limits:
