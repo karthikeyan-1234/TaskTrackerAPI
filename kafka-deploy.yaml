@@ -76,7 +76,7 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30090 # Statically mapped port for your web browser
+    nodePort: 30050 # Statically mapped port for your web browser
     protocol: TCP
   selector:
     app: kafka-ui
