@@ -5,13 +5,14 @@ metadata:
   labels:
     app: kafka
 spec:
+  type: NodePort  # Changed from ClusterIP to expose the broker data plane externally
   ports:
   - port: 9092
     targetPort: 9092
+    nodePort: 30092 # Statically bound port for your local .NET API connectivity
     name: cluster
   selector:
     app: kafka
-  type: NodePort # Internal cluster communication for your APIs
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,7 +33,7 @@ spec:
       containers:
       - name: kafka
         image: apache/kafka:3.7.0
-        imagePullPolicy: Always       # Automatically pulls from the registry
+        imagePullPolicy: Always
         ports:
         - containerPort: 9092
         env:
@@ -49,11 +50,12 @@ spec:
           value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
         - name: KAFKA_CONTROLLER_QUORUM_VOTERS
           value: "1@localhost:9093"
+        # Configures how internal and external components route back to the broker
         - name: KAFKA_ADVERTISED_LISTENERS
           value: "PLAINTEXT://kafka-service:9092"
         - name: CLUSTER_ID
           value: "MkU3OEVBNTcwNTg0NDM4Rk"
-        # Developer-friendly settings
+        # Dynamic configuration flags for local developer cycles
         - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
           value: "true"
         - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
@@ -72,11 +74,11 @@ metadata:
   labels:
     app: kafka-ui
 spec:
-  type: NodePort  # Exposes the UI dashboard onto your host network
+  type: NodePort
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30050 # Statically mapped port for your web browser
+    nodePort: 30050 # Mapped to your specific available UI port assignment
     protocol: TCP
   selector:
     app: kafka-ui
@@ -104,7 +106,7 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        # Link Kafka UI to the broker deployment above via internal CoreDNS
+        # Internal connection parameters linking the UI engine to the broker core
         - name: KAFKA_CLUSTERS_0_NAME
           value: "local-k3s-cluster"
         - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
