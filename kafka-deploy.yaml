@@ -11,7 +11,7 @@ spec:
     name: cluster
   selector:
     app: kafka
-  type: ClusterIP # Internal cluster communication for your APIs
+  type: NodePort # Internal cluster communication for your APIs
 ---
 apiVersion: apps/v1
 kind: Deployment
