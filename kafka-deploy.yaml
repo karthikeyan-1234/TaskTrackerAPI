@@ -11,7 +11,7 @@ spec:
     name: cluster
   selector:
     app: kafka
-  type: ClusterIP
+  type: ClusterIP # Internal cluster communication for your APIs
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,11 +32,11 @@ spec:
       containers:
       - name: kafka
         image: apache/kafka:3.7.0
-        imagePullPolicy: Always
+        imagePullPolicy: Always       # Automatically pulls from the registry
         ports:
         - containerPort: 9092
         env:
-        # Native Apache Kafka Environment Mappings for KRaft Mode
+        # Native Apache KRaft Configuration Variables
         - name: KAFKA_NODE_ID
           value: "1"
         - name: KAFKA_PROCESS_ROLES
@@ -49,16 +49,14 @@ spec:
           value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
         - name: KAFKA_CONTROLLER_QUORUM_VOTERS
           value: "1@localhost:9093"
-        # Configures how internal pods route to this broker via the service DNS mapping
         - name: KAFKA_ADVERTISED_LISTENERS
           value: "PLAINTEXT://kafka-service:9092"
-        # Generated static UUID required by Apache for formatting the cluster log directories
         - name: CLUSTER_ID
           value: "MkU3OEVBNTcwNTg0NDM4Rk"
-        # Optional optimization properties matching the Apache configuration schema
+        # Developer-friendly settings
         - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
           value: "true"
-        - name: KAFKA_OFFSETS_TOPIC_REREPLICATION_FACTOR
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
           value: "1"
         resources:
           limits:
@@ -66,3 +64,56 @@ spec:
           requests:
             cpu: 250m
             memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui-service
+  labels:
+    app: kafka-ui
+spec:
+  type: NodePort  # Exposes the UI dashboard onto your host network
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30090 # Statically mapped port for your web browser
+    protocol: TCP
+  selector:
+    app: kafka-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  labels:
+    app: kafka-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-ui
+  template:
+    metadata:
+      labels:
+        app: kafka-ui
+    spec:
+      containers:
+      - name: kafka-ui
+        image: provectuslabs/kafka-ui:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        # Link Kafka UI to the broker deployment above via internal CoreDNS
+        - name: KAFKA_CLUSTERS_0_NAME
+          value: "local-k3s-cluster"
+        - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+          value: "kafka-service:9092"
+        - name: DYNAMIC_CONFIG_ENABLED
+          value: "true"
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
