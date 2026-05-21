@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: communication:v1
+        image: communication-api:stable
         imagePullPolicy: Never # Forces k8s to use your local docker image build
         ports:
         - containerPort: 8090
