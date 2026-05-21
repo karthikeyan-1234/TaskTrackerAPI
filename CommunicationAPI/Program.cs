@@ -1,3 +1,6 @@
+using CommunicationAPI;
+using CommunicationAPI.Models;
+
 using Confluent.Kafka;
 
 using Microsoft.Data.SqlClient;
@@ -36,6 +39,10 @@ builder.Services.AddCors(options =>
                .AllowAnyHeader();
     });
 });
+
+var config = builder.Configuration;
+builder.Services.AddDbContext<TaskDbContext>(opt => opt.UseSqlServer(config.GetConnectionString("taskDbConn")));
+
 
 // ==========================================
 // 1. OPEN TELEMETRY LOGGING CONFIGURATION
@@ -110,6 +117,8 @@ builder.Services.AddSingleton<IConsumer<string, string>>(sp =>
     };
     return new ConsumerBuilder<string, string>(config).Build();
 });
+
+builder.Services.AddHostedService<BackgroundMonitor>();
 
 var app = builder.Build();
 
